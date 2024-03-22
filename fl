@@ -1,0 +1,122 @@
+#include<windows.h>
+#include <GL/glut.h>
+#include <stdlib.h>
+#include<math.h>
+int flag=0;
+class Point
+{
+public:
+    int x,y;
+    Point()
+    {
+
+        x=0;
+        y=0;
+    }
+    Point(int xval,int yval)
+    {
+        x=xval;
+        y=yval;
+    }
+
+};
+Point pts[100];
+int i=0;
+void flood_fill(int x,int y,float old_color[3],float fill_color[3])
+{
+    float present_color[3];
+    glReadPixels(x,y,1.0,1.0,GL_RGB,GL_FLOAT,present_color);
+    if (fill_color[0]==present_color[0] && fill_color[1]==present_color[1] && fill_color[2]==present_color[2])
+        return;
+    if (old_color[0]==present_color[0] && old_color[1]==present_color[1] && old_color[2]==present_color[2])
+    {
+        glColor3fv(fill_color);
+        glBegin(GL_POINTS);
+            glVertex2f(x,y);
+        glEnd();
+        glFlush();
+        flood_fill(x+1,y,old_color,fill_color);
+        flood_fill(x-1,y,old_color,fill_color);
+        flood_fill(x,y+1,old_color,fill_color);
+        flood_fill(x,y-1,old_color,fill_color);
+        flood_fill(x+1,y+1,old_color,fill_color);
+        flood_fill(x-1,y-1,old_color,fill_color);
+        flood_fill(x+1,y-1,old_color,fill_color);
+        flood_fill(x-1,y+1,old_color,fill_color);
+
+    }
+
+}
+void init()
+{
+    glClearColor(1,1,1,1);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluOrtho2D(0,640,0,480);
+}
+static void mouse(int button,int state,int x,int y)
+{
+        y=480-y;
+
+    if(button==GLUT_LEFT_BUTTON && state==GLUT_DOWN)
+    {
+        Point p(x,y);
+        pts[i]=p;
+        glBegin(GL_POINTS);
+            glVertex2f(x,y);
+        i+=1;
+        glEnd();
+        glFlush();
+
+
+    }
+    else if(button==GLUT_RIGHT_BUTTON && state==GLUT_DOWN)
+    {
+        if(flag==0)
+        {
+
+            flag=1;
+            glColor3f(0,1,0);
+            glBegin(GL_POLYGON);
+            //glBegin(GL_POLYGON_MODE);
+            for(int j=0;j<i;j++)
+            {
+                glVertex2f(pts[j].x,pts[j].y);
+            }
+            glEnd();
+            glFlush();
+        }
+        else
+        {
+        float fillcolors[3]={0,0,1};
+        float oldcolors[3]={0,1,0};
+        flood_fill(x,y,oldcolors,fillcolors);
+        i+=1;
+        flag=0;
+        }
+    }
+}
+static void display(void)
+{
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glColor3d(1,0,0);
+}
+
+int main(int argc, char *argv[])
+{
+    glutInit(&argc, argv);
+    glutInitWindowSize(640,480);
+    glutInitWindowPosition(10,10);
+    glutInitDisplayMode(GLUT_RGB | GLUT_SINGLE);
+
+    glutCreateWindow("GLUT Shapes");
+
+    glutDisplayFunc(display);
+
+    init();
+    glutMouseFunc(mouse);
+
+    glutMainLoop();
+
+    return EXIT_SUCCESS;
+}
