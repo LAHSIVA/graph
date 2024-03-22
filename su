@@ -1,0 +1,354 @@
+#include <windows.h>
+#include <GL/glut.h>
+#include <iostream>
+#include <vector>
+#include <cmath>
+#define SCR_HT 480
+using namespace std;
+vector<pair<int,int> > points;
+vector<pair<int,int> > final_poly;
+int pointno=0;
+int ptr=2;
+static void display(void)
+{
+    glClear(GL_COLOR_BUFFER_BIT);
+    glColor3f(0,0,1);
+    //glPointSize(5.0);
+    //glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+    glBegin(GL_LINES);
+        glVertex2f(0,0);
+        glVertex2f(130.0,0);
+
+    glEnd();
+    glFlush();
+}
+void plot_polygon(vector<pair<int,int> > poly_points)
+{
+    glColor3f(0.3,0.2,0.1);
+    glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+    //glPointSize(2.0);
+    glBegin(GL_POLYGON);
+    for (unsigned int i = 0 ;i < poly_points.size();i++)
+    {
+        glVertex2f(poly_points[i].first , poly_points[i].second );
+    }
+    glEnd();
+    glFlush();
+}
+int leftinside(pair<int,int> tp1,pair<int,int> tp2,pair<int,int> tp3)
+{
+    int a=tp2.first-tp1.first;
+    int b=tp3.first-tp1.first;
+    int c=tp2.second-tp1.second;
+    int d=tp3.second-tp1.second;
+    int val=(a*d)-(b*c);
+    if (val>0) return 0;
+    else return 1;
+}
+pair<int,int> find_inter(pair<int,int> t1,pair<int,int> t2,pair<int,int> t3,pair<int,int> t4)
+{
+    int x1 = t1.first, y1 = t1.second;
+    int x2 = t2.first, y2 = t2.second;
+    int x3 = t3.first, y3 = t3.second;
+    int x4 = t4.first, y4 = t4.second;
+    int denominator = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+    // If denominator is 0, lines are parallel
+    if (denominator != 0)
+    {
+        int xNumerator = (x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4);
+        int yNumerator = (x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4);
+        int x = xNumerator / denominator;
+        int y = yNumerator / denominator;
+        // Check if the intersection point lies within the line segments
+        if (x >= min(x1, x2) && x <= max(x1, x2) && x >= min(x3, x4) && x <= max(x3, x4) &&
+            y >= min(y1, y2) && y <= max(y1, y2) && y >= min(y3, y4) && y <= max(y3, y4))
+        {
+            return make_pair(x, y);
+        }
+    }
+}
+
+void leftclipping(pair<int,int> p1,pair<int,int> p2,pair<int,int> p3,pair<int,int> p4)
+{
+    cout<<"inside lcli"<<endl;
+    int v1=leftinside(p1,p2,p3);
+    int v2=leftinside(p1,p2,p4);
+    if (v1==1 && v2==1)
+    {
+        cout<<1<<endl;
+        final_poly.push_back(p4);
+    }
+    else if (v1==0 && v2==1)
+    {
+        cout<<2<<endl;
+
+        pair<int,int> p_i=find_inter(p1,p2,p3,p4);
+        final_poly.push_back(p_i);
+        final_poly.push_back(p4);
+    }
+    else if (v1==1 && v2==0)
+    {
+        cout<<3<<endl;
+        pair<int,int> pi=find_inter(p1,p2,p3,p4);
+        final_poly.push_back(pi);
+    }
+    else if (v1==0 && v2==0)
+    {
+        cout<<4<<endl;
+    }
+
+}
+int bottominside(pair<int,int> tp1,pair<int,int> tp2,pair<int,int> tp3)
+{
+    int a=tp2.first-tp1.first;
+    int b=tp3.first-tp1.first;
+    int c=tp2.second-tp1.second;
+    int d=tp3.second-tp1.second;
+    int val=(a*d)-(b*c);
+    if (val>0) return 1;
+    else return 0;
+}
+void bottomclipping(pair<int,int> p1,pair<int,int> p2,pair<int,int> p3,pair<int,int> p4)
+{
+    cout<<"inside bcli"<<endl;
+    int v1=bottominside(p1,p2,p3);
+    int v2=bottominside(p1,p2,p4);
+    if (v1==1 && v2==1)
+    {
+        cout<<1<<endl;
+        final_poly.push_back(p4);
+    }
+    else if (v1==0 && v2==1)
+    {
+        cout<<2<<endl;
+
+        pair<int,int> p_i=find_inter(p1,p2,p3,p4);
+        final_poly.push_back(p_i);
+        final_poly.push_back(p4);
+    }
+    else if (v1==1 && v2==0)
+    {
+        cout<<3<<endl;
+        pair<int,int> pi=find_inter(p1,p2,p3,p4);
+        final_poly.push_back(pi);
+    }
+    else if (v1==0 && v2==0)
+    {
+        cout<<4<<endl;
+    }
+
+}
+int rightinside(pair<int,int> tp1,pair<int,int> tp2,pair<int,int> tp3)
+{
+    int a=tp2.first-tp1.first;
+    int b=tp3.first-tp1.first;
+    int c=tp2.second-tp1.second;
+    int d=tp3.second-tp1.second;
+    int val=(a*d)-(b*c);
+    if (val>0) return 0;
+    else return 1;
+}
+void rightclipping(pair<int,int> p1,pair<int,int> p2,pair<int,int> p3,pair<int,int> p4)
+{
+    cout<<"inside rcli"<<endl;
+    int v1=rightinside(p1,p2,p3);
+    int v2=rightinside(p1,p2,p4);
+    if (v1==1 && v2==1)
+    {
+        cout<<1<<endl;
+        final_poly.push_back(p4);
+    }
+    else if (v1==0 && v2==1)
+    {
+        cout<<2<<endl;
+
+        pair<int,int> p_i=find_inter(p1,p2,p3,p4);
+        final_poly.push_back(p_i);
+        final_poly.push_back(p4);
+    }
+    else if (v1==1 && v2==0)
+    {
+        cout<<3<<endl;
+        pair<int,int> pi=find_inter(p1,p2,p3,p4);
+        final_poly.push_back(pi);
+    }
+    else if (v1==0 && v2==0)
+    {
+        cout<<4<<endl;
+    }
+
+}
+int topinside(pair<int,int> tp1,pair<int,int> tp2,pair<int,int> tp3)
+{
+    int a=tp2.first-tp1.first;
+    int b=tp3.first-tp1.first;
+    int c=tp2.second-tp1.second;
+    int d=tp3.second-tp1.second;
+    int val=(a*d)-(b*c);
+    if (val>0) return 0;
+    else return 1;
+}
+void topclipping(pair<int,int> p1,pair<int,int> p2,pair<int,int> p3,pair<int,int> p4)
+{
+    cout<<"inside tcli"<<endl;
+    int v1=topinside(p1,p2,p3);
+    int v2=topinside(p1,p2,p4);
+    if (v1==1 && v2==1)
+    {
+        cout<<1<<endl;
+        final_poly.push_back(p4);
+    }
+    else if (v1==0 && v2==1)
+    {
+        cout<<2<<endl;
+
+        pair<int,int> p_i=find_inter(p1,p2,p3,p4);
+        final_poly.push_back(p_i);
+        final_poly.push_back(p4);
+    }
+    else if (v1==1 && v2==0)
+    {
+        cout<<3<<endl;
+        pair<int,int> pi=find_inter(p1,p2,p3,p4);
+        final_poly.push_back(pi);
+    }
+    else if (v1==0 && v2==0)
+    {
+        cout<<4<<endl;
+    }
+
+}
+void polygon_clipping()
+{
+    vector<pair<int,int> > temp_poly;
+    for (int i=2;i<points.size();i++)
+    {
+        temp_poly.push_back(points[i]);
+    }
+    int x1=points[0].first;
+    int y1=points[0].second;
+    int x2=points[1].first;
+    int y2=points[1].second;
+    pair<int,int> endpt1=make_pair(x1,y1);
+    pair<int,int> endpt2=make_pair(x1,y2);
+    pair<int,int> endpt3=make_pair(x2,y2);
+    pair<int,int> endpt4=make_pair(x2,y1);
+    for (int i=0;i<temp_poly.size()-1;i++)
+    {
+        leftclipping(endpt1,endpt2,temp_poly[i],temp_poly[i+1]);
+    }
+    leftclipping(endpt1,endpt2,temp_poly[temp_poly.size()-1],temp_poly[0]);
+    temp_poly.clear();
+    for (int i=0;i<final_poly.size();i++)
+    {
+        temp_poly.push_back(final_poly[i]);
+    }
+    final_poly.clear();
+    for (int i=0;i<temp_poly.size()-1;i++)
+    {
+        bottomclipping(endpt1,endpt4,temp_poly[i],temp_poly[i+1]);
+    }
+    bottomclipping(endpt1,endpt4,temp_poly[temp_poly.size()-1],temp_poly[0]);
+    temp_poly.clear();
+    for (int i=0;i<final_poly.size();i++)
+    {
+        temp_poly.push_back(final_poly[i]);
+    }
+    final_poly.clear();
+    for (int i=0;i<temp_poly.size()-1;i++)
+    {
+        rightclipping(endpt3,endpt4,temp_poly[i],temp_poly[i+1]);
+    }
+    rightclipping(endpt3,endpt4,temp_poly[temp_poly.size()-1],temp_poly[0]);
+    temp_poly.clear();
+    for (int i=0;i<final_poly.size();i++)
+    {
+        temp_poly.push_back(final_poly[i]);
+    }
+    final_poly.clear();
+    for (int i=0;i<temp_poly.size()-1;i++)
+    {
+        topclipping(endpt2,endpt3,temp_poly[i],temp_poly[i+1]);
+    }
+    topclipping(endpt2,endpt3,temp_poly[temp_poly.size()-1],temp_poly[0]);
+    plot_polygon(final_poly);
+}
+void mouse_handling_function_name(int button,int state,int x,int y)
+{
+    if (button==GLUT_LEFT && state==GLUT_DOWN)
+    {
+        y=SCR_HT - y;
+        pointno++;
+        cout<<"("<<x<<","<<y<<")"<<endl;
+        points.push_back(make_pair(x,y));
+        //glPointSize(5.0);
+        glBegin(GL_POINTS);
+            glVertex2f(x,y);
+        glEnd();
+        glFlush();
+
+        if (points.size()==2)
+        {
+            int x1=points[0].first;
+            int y1=points[0].second;
+            int x2=points[1].first;
+            int y2=points[1].second;
+            glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+            glColor3f(0,0,0);
+            glPointSize(4.0);
+            glBegin(GL_POLYGON);
+                glVertex2f(x1,y1);
+                glVertex2f(x1,y2);
+                glVertex2f(x2,y2);
+                glVertex2f(x2,y1);
+            glEnd();
+            glFlush();
+        }
+    }
+}
+
+void keyboard_func(unsigned char k,int x,int y)
+{
+    if (k=='p' || k=='P')
+    {
+        if (points.size()>0)
+        {
+            glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+            glColor3f(1,0,1);
+            glPointSize(5.0);
+            glBegin(GL_POLYGON);
+            for (int i=2;i <points.size();i++)
+                glVertex2f(points[i].first,points[i].second);
+            glEnd();
+            glFlush();
+
+        }
+    }
+    else if (k=='c' || k=='C')
+    {
+        polygon_clipping();
+    }
+}
+void init()
+{
+    glClearColor(1,1,1,1);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluOrtho2D(0,640,0,480);
+}
+int main(int argc, char *argv[])
+{
+    glutInit(&argc, argv);
+    glutInitWindowSize(640,480);
+    glutInitWindowPosition(10,10);
+    glutInitDisplayMode(GLUT_RGB | GLUT_SINGLE);
+    //GLUT_DOUBLE | GLUT_DEPTH for 3d, for 2d only glut_single is enough
+    glutCreateWindow("GLUT Shapes");
+    glutDisplayFunc(display);
+    init();
+    glutMouseFunc(mouse_handling_function_name);
+    glutKeyboardFunc(keyboard_func);
+    glutMainLoop();
+
+    return EXIT_SUCCESS;
+}
